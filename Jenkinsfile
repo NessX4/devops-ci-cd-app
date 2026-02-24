@@ -1,16 +1,17 @@
 pipeline {
-    agent {
-        docker {
-            image 'maven:3.9.6-eclipse-temurin-17'
-            args '-v /var/run/docker.sock:/var/run/docker.sock'
-        }
-    }
+    agent any
 
     stages {
 
-        stage('Build with Maven') {
+        stage('Build with Maven (Docker)') {
             steps {
-                sh 'mvn clean package'
+                sh '''
+                docker run --rm \
+                  -v $PWD:/app \
+                  -w /app \
+                  maven:3.9.6-eclipse-temurin-17 \
+                  mvn clean package
+                '''
             }
         }
 
