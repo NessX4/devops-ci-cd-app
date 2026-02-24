@@ -6,14 +6,16 @@ pipeline {
         stage('Build with Maven (Docker)') {
             steps {
                 sh '''
+                WORKSPACE_DIR=$(pwd)
                 docker run --rm \
-                  -v $PWD:/app \
-                  -w /app \
-                  maven:3.9.6-eclipse-temurin-17 \
-                  mvn clean package
-                '''
+                -v "$WORKSPACE_DIR":/app \
+                -w /app \
+                maven:3.9.6-eclipse-temurin-17 \
+                mvn clean package
+            '''
             }
         }
+
 
     }
 
