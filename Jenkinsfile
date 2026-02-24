@@ -1,30 +1,52 @@
 pipeline {
-    agent any
+    agent none
+
+    environment {
+        IMAGE_NAME = "devops-app"
+    }
 
     stages {
 
-        stage('Build with Maven (Docker)') {
+        stage('Checkout') {
+            agent any
             steps {
-                sh '''
-                WORKSPACE_DIR=$(pwd)
-                docker run --rm \
-                -v "$WORKSPACE_DIR":/app \
-                -w /app \
-                maven:3.9.6-eclipse-temurin-17 \
-                mvn clean package
-            '''
+                git branch: 'main',
+                    url: 'https://github.com/NessX4/devops-ci-cd-app.git'
             }
         }
 
+        stage('Build & Test') {
+            agent {
+                docker {
+                    image 'maven:3.9.6-eclipse-temurin-17'
+                }
+            }
+            steps {
+                sh 'mvn clean verify'
+            }
+        }
 
+        stage('Archive Artifact') {
+            agent any
+            steps {
+                archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
+            }
+        }
+
+        stage('Build Docker Image') {
+            agent any
+            steps {
+                sh 'docker build -t $IMAGE_NAME:latest .'
+            }
+        }
     }
 
     post {
         success {
-            echo 'Build Successful!'
+            echo 'CI/CD Pipeline Successful!'
         }
         failure {
-            echo 'Build Failed!'
+            echo 'Pipeline Failed!'
         }
     }
 }
