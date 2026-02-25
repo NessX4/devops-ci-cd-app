@@ -1,52 +1,70 @@
 pipeline {
-    agent none
+    agent {
+        docker {
+            image 'maven:3.9.6-eclipse-temurin-17'
+            args '-v /var/run/docker.sock:/var/run/docker.sock'
+        }
+    }
 
     environment {
         IMAGE_NAME = "devops-app"
+        IMAGE_TAG = "latest"
     }
 
     stages {
 
         stage('Checkout') {
-            agent any
             steps {
                 git branch: 'main',
                     url: 'https://github.com/NessX4/devops-ci-cd-app.git'
             }
         }
 
-        stage('Build & Test') {
-            agent {
-                docker {
-                    image 'maven:3.9.6-eclipse-temurin-17'
+        stage('Build') {
+            steps {
+                sh 'mvn clean compile'
+            }
+        }
+
+        stage('Test') {
+            steps {
+                sh 'mvn test'
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv('sonar') {
+                    sh 'mvn sonar:sonar'
                 }
             }
+        }
+
+        stage('Package') {
             steps {
-                sh 'mvn clean verify'
+                sh 'mvn package -DskipTests'
             }
         }
 
         stage('Archive Artifact') {
-            agent any
             steps {
                 archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
             }
         }
 
         stage('Build Docker Image') {
-            agent any
             steps {
-                sh 'docker build -t $IMAGE_NAME:latest .'
+                sh "docker build -t ${IMAGE_NAME}:${IMAGE_TAG} ."
             }
         }
     }
 
     post {
         success {
-            echo 'CI/CD Pipeline Successful!'
+            echo 'Pipeline executed successfully 🚀'
         }
         failure {
-            echo 'Pipeline Failed!'
+            echo 'Pipeline failed ❌'
         }
     }
 }
